@@ -1,0 +1,165 @@
+/*Method For Automating Medicare
+  ------------------------------
+
+  --Pin Connections--
+  1. Arm Servo to Pin 9 of Arduino.
+  2. Grip Servo to Pin 10 of Arduino.
+  3. HCSR04 Trigger Pin to Pin 13 of Arduino.
+  4. HCSR04 Echo Pin to Pin 12 of Arduino.
+  5. Buzzer Pin to Pin 11 of Arduino.
+  6. IN1 Pin of L298 Motor Driver to Pin 4 of Arduino.
+  7. IN2 Pin of L298 Motor Driver to Pin 5 of Arduino.
+  6. ENA Pin of L298 Motor Driver to Pin 3 of Arduino.
+  7. DC Motor Pins to OUT1 and OUT2 of L298 Motor Driver.
+  8. VCC and GND of All Components to the VCC and GND of Arduino.
+  9. Power Adaptor of 6V 2A rating used for Operationg Servo Motors. 
+ */
+
+#include<Servo.h>
+
+Servo arm;  
+Servo hold;
+#define trigPin 13
+#define echoPin 12
+#define buzzer  11
+
+// Global Variables
+int pos=0;      //initial position of arm servo
+int grip=0;    // initial position of gripper servo.
+int distance; //  HC-SR04 variable
+int duration; 
+//const int pwm = 3;
+//const int in1 = 4;
+//const int in2 = 5;
+
+//---------------------
+
+// arm Functions
+void start(); 
+void ret();
+//gripper function
+void gripper();
+void call();
+//HCS04 Function
+float sensing();
+//Movement Function one end to other
+//void movementServe();
+//void movementReturn();
+//Buzzer/Alarm Function
+void buzz();
+
+//----------------------
+
+void setup() 
+{ 
+  Serial.begin(9600);
+  arm.attach(9);
+  hold.attach(10);
+  pinMode(trigPin, OUTPUT);
+  pinMode(echoPin, INPUT );
+  pinMode(buzzer,  OUTPUT); 
+ // pinMode(pwm,OUTPUT) ;   //we have to set PWM pin as output
+  //pinMode(in1,OUTPUT) ;  //Logic pins are also set as output
+  //pinMode(in2,OUTPUT) ;
+}
+
+void loop() 
+{
+  //arm into position
+  Serial.println(" Arm moves into Position");
+  delay(100);
+  for( pos ; pos<=50; pos+=5)
+  {
+    arm.write(pos);
+    delay(2000);
+  }
+  start();   
+}
+void start()
+{
+  Serial.println("Arm  into position for the medicine time of the day ");
+  delay(5000);
+  for(pos=50 ; pos <=60; pos+=5)
+  {
+    arm.write(pos);
+    delay(2000);
+  }
+  gripper();
+}
+void gripper()
+{
+  Serial.println("Gripper Operation to pick up Medicine Box ");
+  delay(5000);
+  for(grip ; grip <=6; grip+=1)
+  {
+    hold.write(grip);
+    delay(2000);
+  }
+  if( sensing()== 1) //to check if box is held in gripper
+    { delay(10000);
+     //Arm rotates towards patient 
+     //wait for 5 mins for patient to take medicine n keep back the box.
+     call();
+    } 
+  else buzz();    
+}
+void call()
+{
+  Serial.println(" Box being released back by the gripper ");
+  delay(4000);
+  if(sensing()==1)
+  {
+   delay(5000);
+   for(grip ; grip>=0; grip-=1)
+   {
+     hold.write(grip);
+     delay(2000);
+   }
+   delay(5000);
+   ret();
+  }
+  else buzz();
+}
+void ret()
+{
+  Serial.println(" Arm back into orginal position");
+  delay(5000);
+  for(pos ; pos >=50; pos-=5)
+  {
+    arm.write(pos);
+    delay(2000);
+  }
+}
+float sensing()
+{
+  Serial.println("Sensor Operation");
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+  duration = pulseIn(echoPin, HIGH);
+  distance = (duration/2) / 29.1;
+  Serial.println(distance);
+  delay(3000);
+  if(distance < 10 && distance !=0)
+    return 1;
+   else return 0; 
+}
+
+
+void buzz()
+{ 
+  int i;
+  for( i=1; i <= 15; i+=1)
+  {
+  digitalWrite(buzzer,HIGH);
+  }
+  digitalWrite(buzzer,LOW);
+  if(sensing()==1)
+     //wait for 5 mins for patient to take medicine.
+     call();
+   else buzz();
+} 
+
+
